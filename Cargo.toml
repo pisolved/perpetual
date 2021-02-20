@@ -1,0 +1,30 @@
+[package]
+name = "zero2prod"
+version = "0.1.0"
+authors = ["Nathan <terakilobyte@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "app"
+
+[dependencies]
+actix-web = "=4.0.0-beta.3"
+log = "0.4.11"
+env_logger = "0.8.2"
+actix-rt = "2.0.2"
+mongodb = "2.0.0-alpha"
+
+[dev-dependencies]
+reqwest = "0.11"
+tokio = "1.2"
+
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false
+features = ["precommit-hook", "run-cargo-fmt", "run-cargo-test", "run-cargo-clippy"]

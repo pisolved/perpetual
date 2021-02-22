@@ -1,3 +1,4 @@
+use actix_files::Files;
 use actix_web::{dev::Server, middleware, web, App, HttpServer};
 use mongodb::Client;
 use std::{env, net::TcpListener};
@@ -17,6 +18,7 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
             .data(client.clone())
             .data(web::JsonConfig::default())
             .configure(routes::user_config)
+            .service(Files::new("/", "./src/static/root/").index_file("index.html"))
     })
     .listen(listener)?
     .run();

@@ -6,7 +6,7 @@ const DUPLICATE_KEY_ERROR_CODE: i32 = 11000;
 
 async fn new(
     client: web::Data<mongodb::Client>,
-    user_data: web::Json<UserProto>,
+    user_data: web::Form<UserProto>,
 ) -> Result<HttpResponse> {
     let err = match user_data
         .clone()

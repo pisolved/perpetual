@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Perpetual</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+</head>
+<body>
+    Hello test test
+
+    <form class="form-horizontal" enctype='application/json' action='/user/new' method="POST">
+        <fieldset>
+
+            <!-- Form Name -->
+            <legend>Sign Up</legend>
+
+            <!-- Text input-->
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="username">username</label>
+                <div class="col-md-4">
+                    <input id="username" name="username" type="text" placeholder="username" class="form-control input-md"
+                        required="">
+                    <span class="help-block">enter your username</span>
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="email">email</label>
+                <div class="col-md-4">
+                    <input id="email" name="email" type="text" placeholder="email" class="form-control input-md">
+                    <span class="help-block">enter your email</span>
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="firstName">first name</label>
+                <div class="col-md-4">
+                    <input id="firstName" name="firstName" type="text" placeholder="first name"
+                        class="form-control input-md">
+                    <span class="help-block">enter your first name</span>
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="lastName">last name</label>
+                <div class="col-md-4">
+                    <input id="lastName" name="lastName" type="text" placeholder="last name" class="form-control input-md">
+                    <span class="help-block">enter your last name</span>
+                </div>
+            </div>
+
+            <!-- Button -->
+            <input type="submit" value="Submit" class="form-control input-md">
+        </fieldset>
+    </form>
+</body>
+</html>

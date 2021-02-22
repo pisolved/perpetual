@@ -1,5 +1,4 @@
 use mongodb::Client;
-use std::env;
 
 #[actix_rt::test]
 async fn mongo_connection_works() {

@@ -1,5 +1,5 @@
 [package]
-name = "zero2prod"
+name = "perpetual"
 version = "0.1.0"
 authors = ["Nathan <terakilobyte@gmail.com>"]
 edition = "2018"
@@ -21,6 +21,7 @@ actix-rt = "2.0.2"
 mongodb = "2.0.0-alpha"
 serde = "1.0.123"
 serde_json = "1.0.62"
+anyhow = "1.0.38"
 
 [dev-dependencies]
 reqwest = "0.11"

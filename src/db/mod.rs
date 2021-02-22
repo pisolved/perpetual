@@ -1,3 +1,5 @@
-mod models;
+mod lang;
+mod user;
 
-pub use models::Lang;
+pub use lang::Lang;
+pub use user::UserProto;

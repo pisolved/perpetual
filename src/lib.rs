@@ -16,7 +16,6 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
             .wrap(middleware::Logger::default())
             .data(client.clone())
             .data(web::JsonConfig::default())
-            .configure(routes::test_config)
             .configure(routes::user_config)
     })
     .listen(listener)?

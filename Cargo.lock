@@ -1709,6 +1709,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "cargo-husky",
+ "derive_more",
  "env_logger",
  "gregorian",
  "log",

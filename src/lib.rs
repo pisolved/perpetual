@@ -1,11 +1,14 @@
 use actix_session::CookieSession;
 use actix_web::{
     body::Body,
-    body::MessageBody,
     dev::{ResponseBody, Server, ServiceResponse},
     http::StatusCode,
     middleware::{ErrorHandlerResponse, ErrorHandlers, Logger},
-    web, App, HttpResponse, HttpServer, Result,
+    web,
+    App,
+    HttpResponse,
+    HttpServer,
+    Result,
 };
 
 use mongodb::Client;
@@ -13,6 +16,7 @@ use std::{env, net::TcpListener};
 use tera::Tera;
 
 mod db;
+mod errors;
 mod routes;
 
 extern crate log;
@@ -93,7 +97,8 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
-    let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+    let mut tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+    tera.full_reload();
 
     let server = HttpServer::new(move || {
         App::new()

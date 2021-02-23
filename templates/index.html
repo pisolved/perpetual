@@ -1,63 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Perpetual</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
-</head>
-<body>
-    Hello test test
-
-    <form class="form-horizontal" action='/user/new' method="POST">
-        <fieldset>
-
-            <!-- Form Name -->
-            <legend>Sign Up</legend>
-
-            <!-- Text input-->
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="username">username</label>
-                <div class="col-md-4">
-                    <input id="username" name="username" type="text" placeholder="username" class="form-control input-md"
-                        required="">
-                    <span class="help-block">enter your username</span>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+        <title>Hello Perpetual</title>
+        <link
+            crossorigin="anonymous"
+            href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+            integrity="sha512-NhSC1YmyruXifcj/KFRWoC561YpHpc5Jtzgvbuzx5VozKpWvQ+4nXhPdFgmx8xqexRcpAglTj9sIBWINXa8x5w=="
+            rel="stylesheet"/>
+        <link
+            crossorigin="anonymous"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+            integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+            rel="stylesheet"/>
+        <script
+            crossorigin="anonymous"
+            integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+            src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <h1>Sign up for an account. It's free!</h1>
+        <form action="/user/new" class="form-horizontal" method="POST">
+            <fieldset>
+                <!-- Text input-->
+                <div class="form-group row">
+                    {% if username_error %}
+                        <label class="col-md-4 col-form-control-label text-danger" for="username">username</label>
+                        <div class="col-md-4">
+                            <input class="form-control input-md is-invalid" id="username" name="username" placeholder="username" required="" type="text" value="{{ username }}"/>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-danger" id="usernameHelp">
+                                {{ username_error }}
+                            </small>
+                        </div>
+                    {% else %}
+                        <label class="col-md-4 col-form-control-label" for="username">username</label>
+                        <div class="col-md-4">
+                            <input class="form-control" id="username" name="username" placeholder="username" required="" type="text" value="{{ username }}"/>
+                        </div>
+                    {% endif %}
                 </div>
-            </div>
-
-            <!-- Text input-->
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="email">email</label>
-                <div class="col-md-4">
-                    <input id="email" name="email" type="text" placeholder="email" class="form-control input-md">
-                    <span class="help-block">enter your email</span>
+                <!-- Text input-->
+                <div class="form-group row">
+                    {% if email_error %}
+                        <label class="col-md-4 control-label text-danger" for="email">email</label>
+                        <div class="col-md-4">
+                            <input class="form-control input-md is-invalid" id="email" name="email" placeholder="email" type="email" value="{{ email }}"/>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-danger" id="emailHelp">
+                                {{ email_error }}
+                            </small>
+                        </div>
+                    {% else %}
+                        <label class="col-md-4 control-label" for="email">email</label>
+                        <div class="col-md-4">
+                            <input class="form-control input-md" id="email" name="email" placeholder="email" type="text" value="{{ email }}"/>
+                        </div>
+                    {% endif %}
                 </div>
-            </div>
-
-            <!-- Text input-->
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="firstName">first name</label>
-                <div class="col-md-4">
-                    <input id="firstName" name="firstName" type="text" placeholder="first name"
-                        class="form-control input-md">
-                    <span class="help-block">enter your first name</span>
+                <!-- Text input-->
+                <div class="form-group row">
+                    <label class="col-md-4 control-label" for="firstName">first name</label>
+                    <div class="col-md-4">
+                        <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name" type="text" value="{{ first_name }}"/>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Text input-->
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="lastName">last name</label>
-                <div class="col-md-4">
-                    <input id="lastName" name="lastName" type="text" placeholder="last name" class="form-control input-md">
-                    <span class="help-block">enter your last name</span>
+                <!-- Text input-->
+                <div class="form-group row">
+                    <label class="col-md-4 control-label" for="lastName">last name</label>
+                    <div class="col-md-4">
+                        <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name" type="text" value="{{ last_name }}"/>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Button -->
-            <input type="submit" value="Submit" class="form-control input-md">
-        </fieldset>
-    </form>
-</body>
+                <!-- Button -->
+                <button class="btn btn-primary" type="submit">Submit</button>
+            </fieldset>
+        </form>
+    </body>
 </html>

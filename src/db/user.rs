@@ -31,7 +31,6 @@ impl UserProto {
         db: &str,
         coll: &str,
     ) -> mongodb::error::Result<User> {
-        dbg!(&self);
         let user = User {
             id: ObjectId::new(),
             data: self,

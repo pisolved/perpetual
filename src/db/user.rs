@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserProto {
     pub username: String,
     pub email: String,
+    pub password: String,
     pub first_name: String,
     pub last_name: String,
 }
@@ -26,11 +27,13 @@ pub struct User {
 
 impl UserProto {
     pub async fn insert(
-        self,
+        mut self,
         client: &Client,
         db: &str,
         coll: &str,
     ) -> mongodb::error::Result<User> {
+        self.password = libpasta::hash_password(&self.password);
+
         let user = User {
             id: ObjectId::new(),
             data: self,

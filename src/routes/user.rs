@@ -1,5 +1,6 @@
 use super::super::db::*;
-use actix_web::{web, HttpResponse, Result};
+use super::base::login_page;
+use actix_web::{web, HttpResponse, Identity, Result};
 use mongodb::error::{ErrorKind, WriteFailure};
 
 const DUPLICATE_KEY_ERROR_CODE: i32 = 11000;
@@ -9,23 +10,13 @@ async fn new(
     tmpl: web::Data<tera::Tera>,
     user_data: web::Form<UserProto>,
 ) -> Result<HttpResponse> {
-    let mut ctx = tera::Context::new();
-    ctx.insert("username", &user_data.username);
-    ctx.insert("email", &user_data.email);
-    ctx.insert("first_name", &user_data.first_name);
-    ctx.insert("last_name", &user_data.last_name);
-    let err = match user_data
+   let err = match user_data
         .clone()
         .insert(client.get_ref(), "perpetual", "users")
         .await
     {
-        Ok(_) => {
-            let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
-                dbg!(&e);
-                actix_web::error::ErrorInternalServerError("Template error")
-            })?;
-
-            return Ok(HttpResponse::Ok().content_type("text/html").body(s));
+        Ok(..) => {
+            return login_page(tmpl).await;
         }
         Err(e) => e,
     };
@@ -50,10 +41,62 @@ async fn new(
                 dbg!(&e);
                 actix_web::error::ErrorInternalServerError("Template error")
             })?
-        } // _ => Err(actix_web::error::ErrorInternalServerError(err)),
+        }
         _ => return Ok(HttpResponse::InternalServerError().body("Internal Server Error")),
     };
-    Ok(HttpResponse::Ok().content_type("text/html").body(s))
+    Ok(HttpResponse::Conflict().content_type("text/html").body(s))
+}
+
+#[derive(Debug)]
+struct LoginInfo {
+    username: String,
+    password: String,
+}
+
+async fn login(
+    client: web::Data<mongodb::Client>,
+    tmpl: web::Data<tera::Tera>,
+    login_info: web::Form<LoginInfo>,
+    id: Identity,
+) -> Result<HttpResponse> {
+    let username = login_info.username;
+    let password = libpasta::hash_password(&login_info.password);
+
+    let result = client
+        .database("perpetual")
+        .collection("users")
+        .find_one(
+            doc! {
+                "username": username,
+                "password": password,
+            },
+            None).await;
+
+    let User { data, .. } = match result {
+        Ok(Some(user)) => user,
+        Ok(None) => return Ok(HttpResponse::Unauthorized("invalid username or password"));
+        Err(e) => Ok(HttpResponse::Conflict().content_type("text/html").body(e))
+    };
+
+    let mut ctx = tera::Context::new();
+    ctx.insert("username", &username);
+    ctx.insert("email", &email);
+    ctx.insert("first_name", &first_name);
+    ctx.insert("last_name", &last_name);
+
+    if let Some(existing_login_user) = id.identity() {
+        dbg!("logging out of {} to log into {}", existing_login_user, username);
+        id.forget();
+        id.remember(username);
+    }
+
+    let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
+                dbg!(&e);
+                actix_web::error::ErrorInternalServerError("Template error")
+            })?;
+
+            return Ok(HttpResponse::Ok().content_type("text/html").body(s));
+
 }
 
 pub fn user_config(config: &mut web::ServiceConfig) {

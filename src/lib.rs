@@ -1,4 +1,4 @@
-use actix_session::CookieSession;
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_web::{
     body::Body,
     dev::{ResponseBody, Server, ServiceResponse},
@@ -12,6 +12,7 @@ use actix_web::{
 };
 
 use mongodb::Client;
+use rand::Rng;
 use std::{env, net::TcpListener};
 use tera::Tera;
 
@@ -22,38 +23,12 @@ extern crate log;
 
 // Custom error handlers, to return HTML responses when an error occurs.
 fn error_handlers() -> ErrorHandlers<Body> {
-    ErrorHandlers::new()
-        .handler(StatusCode::NOT_FOUND, not_found)
-        .handler(StatusCode::CONFLICT, conflict)
+    ErrorHandlers::new().handler(StatusCode::NOT_FOUND, not_found)
 }
 
 // Error handler for a 404 Page not found error.
 fn not_found(res: ServiceResponse) -> Result<ErrorHandlerResponse<Body>> {
     let response = get_error_response(&res, "Page not found fool");
-    Ok(ErrorHandlerResponse::Response(
-        res.into_response(response.into_body()),
-    ))
-}
-
-// Error handler for a 409 Conflict.
-fn conflict(mut res: ServiceResponse) -> Result<ErrorHandlerResponse<Body>> {
-    let body = match res.take_body() {
-        ResponseBody::Body(body) => body,
-        ResponseBody::Other(body) => body,
-    };
-
-    let msg = match body {
-        Body::None | Body::Empty | Body::Message(..) => "Conflict".into(),
-        Body::Bytes(bytes) => {
-            if let Ok(s) = String::from_utf8(bytes.to_vec()) {
-                s
-            } else {
-                "Conflict".into()
-            }
-        }
-    };
-
-    let response = get_error_response(&res, &msg);
     Ok(ErrorHandlerResponse::Response(
         res.into_response(response.into_body()),
     ))
@@ -98,14 +73,18 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
 
     let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
 
+    // Generate a random 32 byte key. Note that it is important to use a unique
+    // private key for every project. Anyone with access to the key can generate
+    // authentication cookies for any user!
+    let private_key = rand::thread_rng().gen::<[u8; 32]>();
+
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(
-                CookieSession::signed(
-                    "this is such a long string that it has 32 bytes in it (at least)".as_bytes(),
-                )
-                .secure(false),
-            )
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&private_key)
+                    .name("perpetual")
+                    .secure(false),
+            ))
             .wrap(error_handlers())
             .wrap(Logger::default())
             .data(client.clone())
@@ -113,6 +92,7 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
             .data(tera.clone())
             .configure(routes::user_config)
             .service(web::resource("/").route(web::get().to(routes::index)))
+            .configure(routes::base_config)
     })
     .listen(listener)?
     .run();

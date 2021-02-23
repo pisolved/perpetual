@@ -9,19 +9,26 @@ async fn new(
     tmpl: web::Data<tera::Tera>,
     user_data: web::Form<UserProto>,
 ) -> Result<HttpResponse> {
-    let err = match user_data
-        .clone()
-        .insert(client.get_ref(), "perpetual", "users")
-        .await
-    {
-        Ok(res) => return Ok(HttpResponse::Ok().json(&res)),
-        Err(e) => e,
-    };
     let mut ctx = tera::Context::new();
     ctx.insert("username", &user_data.username);
     ctx.insert("email", &user_data.email);
     ctx.insert("first_name", &user_data.first_name);
     ctx.insert("last_name", &user_data.last_name);
+    let err = match user_data
+        .clone()
+        .insert(client.get_ref(), "perpetual", "users")
+        .await
+    {
+        Ok(res) => {
+            let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
+                dbg!(&e);
+                actix_web::error::ErrorInternalServerError("Template error")
+            })?;
+
+            return Ok(HttpResponse::Ok().content_type("text/html").body(s));
+        }
+        Err(e) => e,
+    };
 
     let s = match err.kind.as_ref() {
         ErrorKind::WriteError(WriteFailure::WriteError(write_error))

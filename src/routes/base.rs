@@ -1,15 +1,6 @@
 // store tera template in application state
 
-use actix_web::{
-    body::Body,
-    dev::ServiceResponse,
-    error,
-    middleware::{ErrorHandlerResponse, ErrorHandlers},
-    web,
-    Error,
-    HttpResponse,
-    Result,
-};
+use actix_web::{error, web, Error, HttpResponse, Result};
 use tera::Tera;
 pub async fn index(tmpl: web::Data<Tera>) -> Result<HttpResponse, Error> {
     let mut ctx = tera::Context::new();

@@ -1,4 +1,4 @@
-use super::super::{db::*, errors::ConflictError};
+use super::super::db::*;
 use actix_web::{web, HttpResponse, Result};
 use mongodb::error::{ErrorKind, WriteFailure};
 
@@ -19,7 +19,7 @@ async fn new(
         .insert(client.get_ref(), "perpetual", "users")
         .await
     {
-        Ok(res) => {
+        Ok(_) => {
             let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
                 dbg!(&e);
                 actix_web::error::ErrorInternalServerError("Template error")

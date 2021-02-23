@@ -75,7 +75,7 @@ async fn login(
     let User { data, .. } = match result {
         Ok(Some(user)) => user,
         Ok(None) => return Ok(HttpResponse::Unauthorized("invalid username or password"));
-        Err(e) => Ok(HttpResponse::Conflict().content_type("text/html").body(e))
+        Err(e) => Ok(HttpResponse::InternalServerErrror().content_type("text/html").body(e))
     };
 
     let mut ctx = tera::Context::new();

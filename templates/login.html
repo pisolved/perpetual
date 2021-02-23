@@ -1,71 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8"/>
-        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
-        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-        <title>Hello Perpetual</title>
-        {% include "resources.html" %}
-    </head>
-    <body>
-        <h1>Sign up for an account. It's free!</h1>
-        <form action="/user/new" class="form-horizontal" method="POST">
-            <fieldset>
-                <!-- Text input-->
-                <div class="form-group row">
-                    {% if username_error %}
-                        <label class="col-md-4 col-form-control-label text-danger" for="username">username</label>
-                        <div class="col-md-4">
-                            <input class="form-control input-md is-invalid" id="username" name="username" placeholder="username" required="" type="text" value="{{ username }}"/>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-danger" id="usernameHelp">
-                                {{ username_error }}
-                            </small>
-                        </div>
-                    {% else %}
-                        <label class="col-md-4 col-form-control-label" for="username">username</label>
-                        <div class="col-md-4">
-                            <input class="form-control" id="username" name="username" placeholder="username" required="" type="text" value="{{ username }}"/>
-                        </div>
-                    {% endif %}
+
+<head>
+    <meta charset="UTF-8" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Hello Perpetual</title>
+    {% include "resources.html" %}
+</head>
+
+<body>
+    <h1>Log in</h1>
+    <form action="/user/login" class="form-horizontal" method="POST">
+        <fieldset>
+            <!-- Text input-->
+            <div class="form-group row">
+                {% if username_error %}
+                <label class="col-md-4 col-form-control-label text-danger" for="username">username</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md is-invalid" id="username" name="username" placeholder="username"
+                        required="" type="text" value="{{ username }}" />
                 </div>
-                <!-- Text input-->
-                <div class="form-group row">
-                    {% if email_error %}
-                        <label class="col-md-4 control-label text-danger" for="email">email</label>
-                        <div class="col-md-4">
-                            <input class="form-control input-md is-invalid" id="email" name="email" placeholder="email" type="email" value="{{ email }}"/>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-danger" id="emailHelp">
-                                {{ email_error }}
-                            </small>
-                        </div>
-                    {% else %}
-                        <label class="col-md-4 control-label" for="email">email</label>
-                        <div class="col-md-4">
-                            <input class="form-control input-md" id="email" name="email" placeholder="email" type="text" value="{{ email }}"/>
-                        </div>
-                    {% endif %}
+                <div class="col-md-4">
+                    <small class="text-danger" id="usernameHelp">
+                        {{ username_error }}
+                    </small>
                 </div>
-                <!-- Text input-->
-                <div class="form-group row">
-                    <label class="col-md-4 control-label" for="firstName">first name</label>
-                    <div class="col-md-4">
-                        <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name" type="text" value="{{ first_name }}"/>
-                    </div>
+                {% else %}
+                <label class="col-md-4 col-form-control-label" for="username">username</label>
+                <div class="col-md-4">
+                    <input class="form-control" id="username" name="username" placeholder="username" required=""
+                        type="text" value="{{ username }}" />
                 </div>
-                <!-- Text input-->
-                <div class="form-group row">
-                    <label class="col-md-4 control-label" for="lastName">last name</label>
-                    <div class="col-md-4">
-                        <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name" type="text" value="{{ last_name }}"/>
-                    </div>
+                {% endif %}
+            </div>
+            <!-- Text input-->
+            <div class="form-group row">
+                {% if password_error %}
+                <label class="col-md-4 control-label text-danger" for="password">password</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md is-invalid" id="password" name="password" placeholder="password"
+                        type="password" value="{{ password }}" />
                 </div>
-                <!-- Button -->
-                <button class="btn btn-primary" type="submit">Submit</button>
-            </fieldset>
-        </form>
-    </body>
+                <div class="col-md-4">
+                    <small class="text-danger" id="passwordHelp">
+                        {{ password_error }}
+                    </small>
+                </div>
+                {% else %}
+                <label class="col-md-4 control-label" for="password">password</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md" id="password" name="password" placeholder="password"
+                        type="password" value="{{ password }}" />
+                </div>
+                {% endif %}
+            </div>
+            <!-- Button -->
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </fieldset>
+    </form>
+</body>
+
 </html>

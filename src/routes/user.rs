@@ -1,7 +1,12 @@
-use super::super::db::*;
-use super::base::login_page;
-use actix_web::{web, HttpResponse, Identity, Result};
-use mongodb::error::{ErrorKind, WriteFailure};
+use super::{super::db::*, base::login_page};
+use actix_identity::Identity;
+use actix_web::{web, HttpResponse, Result};
+use libpasta::verify_password;
+use mongodb::{
+    bson::doc,
+    error::{ErrorKind, WriteFailure},
+};
+use serde::Deserialize;
 
 const DUPLICATE_KEY_ERROR_CODE: i32 = 11000;
 
@@ -10,7 +15,13 @@ async fn new(
     tmpl: web::Data<tera::Tera>,
     user_data: web::Form<UserProto>,
 ) -> Result<HttpResponse> {
-   let err = match user_data
+    let mut ctx = tera::Context::new();
+    ctx.insert("username", &user_data.username);
+    ctx.insert("email", &user_data.email);
+    ctx.insert("first_name", &user_data.first_name);
+    ctx.insert("last_name", &user_data.last_name);
+
+    let err = match user_data
         .clone()
         .insert(client.get_ref(), "perpetual", "users")
         .await
@@ -47,7 +58,7 @@ async fn new(
     Ok(HttpResponse::Conflict().content_type("text/html").body(s))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct LoginInfo {
     username: String,
     password: String,
@@ -59,46 +70,57 @@ async fn login(
     login_info: web::Form<LoginInfo>,
     id: Identity,
 ) -> Result<HttpResponse> {
-    let username = login_info.username;
-    let password = libpasta::hash_password(&login_info.password);
-
     let result = client
         .database("perpetual")
-        .collection("users")
+        .collection_with_type("users")
         .find_one(
             doc! {
-                "username": username,
-                "password": password,
+                "username": &login_info.username,
             },
-            None).await;
+            None,
+        )
+        .await;
 
     let User { data, .. } = match result {
         Ok(Some(user)) => user,
-        Ok(None) => return Ok(HttpResponse::Unauthorized("invalid username or password"));
-        Err(e) => Ok(HttpResponse::InternalServerErrror().content_type("text/html").body(e))
+        Ok(None) => return Ok(HttpResponse::Unauthorized().body("invalid username or password")),
+        Err(..) => {
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        }
     };
 
+    if !libpasta::verify_password(&data.password, &login_info.password) {
+        return Ok(HttpResponse::Unauthorized().body("invalid username or password"));
+    }
+
     let mut ctx = tera::Context::new();
-    ctx.insert("username", &username);
-    ctx.insert("email", &email);
-    ctx.insert("first_name", &first_name);
-    ctx.insert("last_name", &last_name);
+    ctx.insert("username", &data.username);
+    ctx.insert("email", &data.email);
+    ctx.insert("first_name", &data.first_name);
+    ctx.insert("last_name", &data.last_name);
 
     if let Some(existing_login_user) = id.identity() {
-        dbg!("logging out of {} to log into {}", existing_login_user, username);
+        dbg!(
+            "logging out of {} to log into {}",
+            existing_login_user,
+            &data.username,
+        );
         id.forget();
-        id.remember(username);
+        id.remember(data.username);
     }
 
     let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
-                dbg!(&e);
-                actix_web::error::ErrorInternalServerError("Template error")
-            })?;
+        dbg!(&e);
+        actix_web::error::ErrorInternalServerError("Template error")
+    })?;
 
-            return Ok(HttpResponse::Ok().content_type("text/html").body(s));
-
+    return Ok(HttpResponse::Ok().content_type("text/html").body(s));
 }
 
 pub fn user_config(config: &mut web::ServiceConfig) {
-    config.service(web::scope("/user").route("/new", web::post().to(new)));
+    config.service(
+        web::scope("/user")
+            .service(web::resource("/login").route(web::post().to(login)))
+            .service(web::resource("/new").route(web::post().to(new))),
+    );
 }

@@ -1,7 +1,7 @@
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{
     body::Body,
-    dev::{ResponseBody, Server, ServiceResponse},
+    dev::{Server, ServiceResponse},
     http::StatusCode,
     middleware::{ErrorHandlerResponse, ErrorHandlers, Logger},
     web,

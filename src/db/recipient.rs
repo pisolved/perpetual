@@ -44,7 +44,7 @@ impl From<Date> for GregorianDate {
 }
 
 impl RecipientProto {
-    pub async fn insert(self, client: &Client, db: &str, coll: &str) -> mongodb::error::Result<()> {
+    pub async fn new(self, client: &Client, db: &str, coll: &str) -> mongodb::error::Result<()> {
         let recipient = Recipient {
             id: ObjectId::new(),
             data: self,

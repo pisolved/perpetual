@@ -19,7 +19,7 @@ pub struct Recipient {
 pub struct RecipientProto {
     pub first_name: String,
     pub last_name: String,
-    pub gift_date: GregorianDate,
+    pub gift_date: String,
     pub address: String,
 }
 

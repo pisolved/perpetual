@@ -1,59 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8"/>
+        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Welcome</title>
     {% include "resources.html" %}
 </head>
-
 <body>
     Hello {{ username }}
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+    <table class="table">
+                <caption v-if="captions">
+                    Your lucky recipients
+                </caption>
+                <thead>
+                    <tr>
+                        <th scope="col">First Name</th>
+                        <th scope="col">Last Name</th>
+                        <th scope="col">Address</th>
+                        <th scope="col">Gift Date</th>
+                        <th scope="col">Good Person?</th>
+                    </tr>
+                </thead>
+                <tbody>
 
     {% for recipient in recipients %}
-    <div>{{ recipient.first_name }} {{ recipient.last_name }}</div>
-    {% endfor %}
+                    <tr>
+                        <td>{{ recipient.firstName }}</td>
+                        <td>{{ recipient.lastName }}</td>
+                        <td>{{ recipient.address }}</td>
+                        <td>{{ recipient.giftDate }}</td>
+                        <td>Allegedly</td>
+                    </tr>
 
+    {% endfor %}
+                </tbody>
+
+            </table>
     <form action="/user/add-gift-date" class="form-horizontal" method="POST">
         <fieldset>
             <!-- Text input-->
             <div class="form-group row">
                 <label class="col-md-4 control-label" for="firstName">first name</label>
                 <div class="col-md-4">
-                    <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name"
-                        type="text" />
+                        <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name" type="text"/>
                 </div>
             </div>
-
             <!-- Text input-->
             <div class="form-group row">
                 <label class="col-md-4 control-label" for="lastName">last name</label>
                 <div class="col-md-4">
-                    <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name"
-                        type="text" />
+                        <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name" type="text"/>
                 </div>
             </div>
-
             <!-- Text input-->
             <div class="form-group row">
                 <label class="col-md-4 control-label" for="address">address</label>
                 <div class="col-md-4">
-                    <input class="form-control input-md" id="address" name="address" placeholder="address"
-                        type="text" />
+                        <input class="form-control input-md" id="address" name="address" placeholder="address" type="text"/>
                 </div>
             </div>
-
             <!-- Text input-->
             <div class="form-group row">
                 <label class="col-md-4 control-label" for="gift_date">gift date</label>
                 <div class="col-md-4">
                     <input class="form-control input-md" id="giftDate" name="giftDate" placeholder="gift date"
-                        type="date""/>
+                        type="date"/>
                 </div>
             </div>
-            
+
             <!-- Button -->
             <button class=" btn btn-primary" type="submit">Submit</button>
         </fieldset>

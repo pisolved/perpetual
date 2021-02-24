@@ -157,7 +157,7 @@ pub async fn user_home_page(
     let result = client
         .database(DB)
         .collection_with_type(RECIPIENTS)
-        .find(doc! { "gifting_user": id }, None)
+        .find(doc! { "giftingUser": id }, None)
         .await;
 
     let stream = match result {
@@ -167,7 +167,7 @@ pub async fn user_home_page(
         }
     };
 
-    let recipients: Vec<Recipient> = match stream.try_collect().await {
+    let recipients: Vec<RecipientProto> = match stream.try_collect().await {
         Ok(recipients) => recipients,
         Err(..) => {
             return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
@@ -207,7 +207,7 @@ pub async fn new_recipient(
 
     let result = user_data
         .clone()
-        .insert(id, client.get_ref(), "perpetual", "recipients")
+        .insert(id, client.get_ref(), DB, RECIPIENTS)
         .await;
 
     match result {

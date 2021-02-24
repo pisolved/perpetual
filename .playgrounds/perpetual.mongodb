@@ -1,0 +1,3 @@
+use('perpetual')
+db.recipients.find()
+

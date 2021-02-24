@@ -1,3 +1,4 @@
+use actix_files as fs;
 use actix_identity::{CookieIdentityPolicy, IdentityService};
 use actix_web::{
     body::Body,
@@ -88,6 +89,10 @@ pub fn run(
             .data(client.clone())
             .data(web::JsonConfig::default())
             .data(tera.clone())
+            .service(
+                fs::Files::new("/static", concat!(env!("CARGO_MANIFEST_DIR"), "/static"))
+                    .show_files_listing(),
+            )
             .configure(routes::user_config)
             .configure(routes::base_config)
     })

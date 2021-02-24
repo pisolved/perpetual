@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,7 +8,56 @@
     <title>Welcome</title>
     {% include "resources.html" %}
 </head>
+
 <body>
     Hello {{ username }}
+
+    {% for recipient in recipients %}
+    <div>{{ recipient.first_name }} {{ recipient.last_name }}</div>
+    {% endfor %}
+
+    <form action="/user/add-gift-date" class="form-horizontal" method="POST">
+        <fieldset>
+            <!-- Text input-->
+            <div class="form-group row">
+                <label class="col-md-4 control-label" for="firstName">first name</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name"
+                        type="text" />
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group row">
+                <label class="col-md-4 control-label" for="lastName">last name</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name"
+                        type="text" />
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group row">
+                <label class="col-md-4 control-label" for="address">address</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md" id="address" name="address" placeholder="address"
+                        type="text" />
+                </div>
+            </div>
+
+            <!-- Text input-->
+            <div class="form-group row">
+                <label class="col-md-4 control-label" for="gift_date">gift date</label>
+                <div class="col-md-4">
+                    <input class="form-control input-md" id="giftDate" name="giftDate" placeholder="gift date"
+                        type="date""/>
+                </div>
+            </div>
+            
+            <!-- Button -->
+            <button class=" btn btn-primary" type="submit">Submit</button>
+        </fieldset>
+    </form>
 </body>
+
 </html>

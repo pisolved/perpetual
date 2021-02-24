@@ -12,7 +12,6 @@ use actix_web::{
 };
 
 use mongodb::Client;
-use rand::Rng;
 use std::{env, net::TcpListener};
 use tera::Tera;
 
@@ -67,21 +66,20 @@ fn get_error_response<B>(res: &ServiceResponse<B>, error: &str) -> HttpResponse<
         None => fallback(error),
     }
 }
-pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+    client: Client,
+    private_key: &'static str,
+) -> Result<Server, std::io::Error> {
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
     let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
 
-    // Generate a random 32 byte key. Note that it is important to use a unique
-    // private key for every project. Anyone with access to the key can generate
-    // authentication cookies for any user!
-    let private_key = rand::thread_rng().gen::<[u8; 32]>();
-
     let server = HttpServer::new(move || {
         App::new()
             .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&private_key)
+                CookieIdentityPolicy::new(private_key.as_bytes())
                     .name("perpetual")
                     .secure(false),
             ))
@@ -91,7 +89,6 @@ pub fn run(listener: TcpListener, client: Client) -> Result<Server, std::io::Err
             .data(web::JsonConfig::default())
             .data(tera.clone())
             .configure(routes::user_config)
-            .service(web::resource("/").route(web::get().to(routes::index)))
             .configure(routes::base_config)
     })
     .listen(listener)?

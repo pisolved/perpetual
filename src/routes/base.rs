@@ -48,6 +48,10 @@ pub async fn login_page(tmpl: web::Data<Tera>) -> Result<HttpResponse, Error> {
 }
 
 pub fn base_config(config: &mut web::ServiceConfig) {
-    config.service(web::scope("/signup").route("", web::get().to(signup)));
-    config.service(web::scope("/login").route("", web::get().to(login_page)));
+    config.service(
+        web::scope("/")
+            .service(web::resource("signup").route(web::get().to(signup)))
+            .service(web::resource("login").route(web::get().to(login_page)))
+            .service(web::resource("").route(web::get().to(index))),
+    );
 }

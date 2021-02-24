@@ -1,7 +1,7 @@
-use super::{super::db::*, base::login_page};
+use super::{super::db::*, SessionInfo};
 use actix_identity::Identity;
 use actix_web::{web, HttpResponse, Result};
-use libpasta::verify_password;
+use futures::stream::TryStreamExt;
 use mongodb::{
     bson::doc,
     error::{ErrorKind, WriteFailure},
@@ -9,6 +9,10 @@ use mongodb::{
 use serde::Deserialize;
 
 const DUPLICATE_KEY_ERROR_CODE: i32 = 11000;
+
+const DB: &str = "perpetual";
+const USERS: &str = "users";
+const RECIPIENTS: &str = "recipients";
 
 async fn new(
     client: web::Data<mongodb::Client>,
@@ -21,13 +25,11 @@ async fn new(
     ctx.insert("first_name", &user_data.first_name);
     ctx.insert("last_name", &user_data.last_name);
 
-    let err = match user_data
-        .clone()
-        .insert(client.get_ref(), "perpetual", "users")
-        .await
-    {
+    let err = match user_data.clone().insert(client.get_ref(), DB, USERS).await {
         Ok(..) => {
-            return login_page(tmpl).await;
+            return Ok(HttpResponse::Found()
+                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .finish());
         }
         Err(e) => e,
     };
@@ -68,11 +70,11 @@ async fn login(
     client: web::Data<mongodb::Client>,
     tmpl: web::Data<tera::Tera>,
     login_info: web::Form<LoginInfo>,
-    id: Identity,
+    identity: Identity,
 ) -> Result<HttpResponse> {
     let result = client
-        .database("perpetual")
-        .collection_with_type("users")
+        .database(DB)
+        .collection_with_type(USERS)
         .find_one(
             doc! {
                 "username": &login_info.username,
@@ -81,7 +83,7 @@ async fn login(
         )
         .await;
 
-    let User { data, .. } = match result {
+    let User { data, id } = match result {
         Ok(Some(user)) => user,
         Ok(None) => return Ok(HttpResponse::Unauthorized().body("invalid username or password")),
         Err(..) => {
@@ -93,34 +95,135 @@ async fn login(
         return Ok(HttpResponse::Unauthorized().body("invalid username or password"));
     }
 
-    let mut ctx = tera::Context::new();
-    ctx.insert("username", &data.username);
-    ctx.insert("email", &data.email);
-    ctx.insert("first_name", &data.first_name);
-    ctx.insert("last_name", &data.last_name);
-
-    if let Some(existing_login_user) = id.identity() {
+    if let Some(existing_login_user) = identity.identity() {
         dbg!(
             "logging out of {} to log into {}",
             existing_login_user,
             &data.username,
         );
-        id.forget();
-        id.remember(data.username);
+        identity.forget();
     }
+
+    let session = SessionInfo {
+        username: data.username,
+        id,
+    };
+
+    identity.remember(serde_json::to_string(&session).expect("serde unable to serialize session"));
+
+    user_home_page(client, tmpl, identity).await
+}
+
+pub async fn user_home_page(
+    client: web::Data<mongodb::Client>,
+    tmpl: web::Data<tera::Tera>,
+    identity: Identity,
+) -> Result<HttpResponse> {
+    let SessionInfo { username, id } = match identity.identity() {
+        Some(identity) => {
+            serde_json::from_str(&identity).expect("serde unable to deserialize session")
+        }
+        None => {
+            return Ok(HttpResponse::Found()
+                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .finish())
+        }
+    };
+
+    let result = client
+        .database(DB)
+        .collection_with_type(USERS)
+        .find_one(
+            doc! {
+                "_id": &id,
+                "username": username,
+            },
+            None,
+        )
+        .await;
+
+    let User { data, .. } = match result {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            return Ok(HttpResponse::Found()
+                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .finish())
+        }
+        Err(..) => {
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        }
+    };
+
+    let result = client
+        .database(DB)
+        .collection_with_type(RECIPIENTS)
+        .find(doc! { "gifting_user": id }, None)
+        .await;
+
+    let stream = match result {
+        Ok(stream) => stream,
+        Err(..) => {
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        }
+    };
+
+    let recipients: Vec<Recipient> = match stream.try_collect().await {
+        Ok(recipients) => recipients,
+        Err(..) => {
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        }
+    };
+
+    let mut ctx = tera::Context::new();
+    ctx.insert("username", &data.username);
+    ctx.insert("email", &data.email);
+    ctx.insert("first_name", &data.first_name);
+    ctx.insert("last_name", &data.last_name);
+    ctx.insert("recipients", &recipients);
 
     let s = tmpl.render("loggedin.html", &ctx).map_err(|e| {
         dbg!(&e);
         actix_web::error::ErrorInternalServerError("Template error")
     })?;
 
-    return Ok(HttpResponse::Ok().content_type("text/html").body(s));
+    Ok(HttpResponse::Ok().content_type("text/html").body(s))
+}
+
+pub async fn new_recipient(
+    client: web::Data<mongodb::Client>,
+    user_data: web::Form<RecipientProto>,
+    identity: Identity,
+) -> Result<HttpResponse> {
+    let SessionInfo { id, .. } = match identity.identity() {
+        Some(identity) => {
+            serde_json::from_str(&identity).expect("serde unable to deserialize session")
+        }
+        None => {
+            return Ok(HttpResponse::Found()
+                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .finish())
+        }
+    };
+
+    let result = user_data
+        .clone()
+        .insert(id, client.get_ref(), "perpetual", "recipients")
+        .await;
+
+    match result {
+        Ok(..) => Ok(HttpResponse::Found()
+            .append_header((actix_web::http::header::LOCATION, "/user"))
+            .finish()),
+        Err(..) => Ok(HttpResponse::InternalServerError().body("unable to connect to database")),
+    }
 }
 
 pub fn user_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/user")
             .service(web::resource("/login").route(web::post().to(login)))
-            .service(web::resource("/new").route(web::post().to(new))),
+            .service(web::resource("/new").route(web::post().to(new)))
+            .service(web::resource("/add-gift-date").route(web::post().to(new_recipient)))
+            .service(web::resource("").route(web::get().to(user_home_page))),
     );
 }

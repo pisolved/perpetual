@@ -66,10 +66,10 @@ submit$
 
 function addRecipient() {
   let data = {
-    firstName: escape($("#firstName").val()),
-    lastName: escape($("#lastName").val()),
-    address: escape($("#address").val()),
-    giftDate: escape($("#giftDate").val()),
+    firstName: sanitize($("#firstName").val()),
+    lastName: sanitize($("#lastName").val()),
+    address: sanitize($("#address").val()),
+    giftDate: sanitize($("#giftDate").val()),
   };
 
   let formError = false;

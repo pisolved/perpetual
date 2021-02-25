@@ -30,6 +30,11 @@ derive_more = "0.99.11"
 libpasta = "0.1.1"
 futures = "0.3.13"
 dashmap = "4.0.2"
+reqwest = "0.11.1"
+pwned = "0.4.0"
+sha-1 = "0.9.4"
+hex = "0.4.2"
+rand = "0.8.3"
 
 [dev-dependencies]
 reqwest = "0.11"

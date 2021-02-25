@@ -12,6 +12,7 @@ pub struct UserProto {
     pub password: String,
     pub first_name: String,
     pub last_name: String,
+    pub phone: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

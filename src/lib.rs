@@ -86,11 +86,13 @@ pub fn run(
     client: Client,
     private_key: &'static str,
     uniques: Uniques,
-) -> Result<Server, std::io::Error> {
+) -> std::io::Result<Server> {
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
 
     let tera = Tera::new(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*")).unwrap();
+
+    let reqwest_client = reqwest::Client::new();
 
     let server = HttpServer::new(move || {
         App::new()
@@ -102,9 +104,9 @@ pub fn run(
             .wrap(error_handlers())
             .wrap(Logger::default())
             .data(client.clone())
-            .data(web::JsonConfig::default())
             .data(tera.clone())
             .data(uniques.clone())
+            .data(reqwest_client.clone())
             .service(
                 fs::Files::new("/static", concat!(env!("CARGO_MANIFEST_DIR"), "/static"))
                     .show_files_listing(),

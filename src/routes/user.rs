@@ -11,6 +11,9 @@ use mongodb::{
     error::{ErrorKind, WriteFailure},
 };
 use serde::Deserialize;
+use std::ops::Deref;
+
+use sha1::Digest;
 
 const DUPLICATE_KEY_ERROR_CODE: i32 = 11000;
 
@@ -18,17 +21,34 @@ const DB: &str = "perpetual";
 const USERS: &str = "users";
 const RECIPIENTS: &str = "recipients";
 
-async fn new(
+async fn signup(
     client: web::Data<mongodb::Client>,
     uniques: web::Data<Uniques>,
     tmpl: web::Data<tera::Tera>,
     user_data: web::Form<UserProto>,
+    web_client: web::Data<reqwest::Client>,
 ) -> Result<HttpResponse> {
     let mut ctx = tera::Context::new();
     ctx.insert("username", &user_data.username);
     ctx.insert("email", &user_data.email);
     ctx.insert("first_name", &user_data.first_name);
     ctx.insert("last_name", &user_data.last_name);
+
+    let phone_number = user_data.phone.replace("-", "");
+    if phone_number.len() != 10 || phone_number.chars().any(|c| !c.is_digit(10)) {
+        ctx.insert("phone_error", "Invalid phone number");
+        let s = tmpl.render("signup.html", &ctx).map_err(|e| {
+            dbg!(&e);
+            actix_web::error::ErrorInternalServerError("Template error")
+        })?;
+
+        return Ok(HttpResponse::Conflict().content_type("text/html").body(s));
+    }
+
+    if check_hibp(web_client.as_ref(), &user_data.password).await {
+        return Ok(HttpResponse::PreconditionFailed().body("<h1>The password you entered has been <a href='https://www.troyhunt.com/introducing-306-million-freely-downloadable-pwned-passwords/'>compromised</a>.
+        </h1><p>Perpetual recommends you use a <a href='https://1password.com'>password manager.</a>"));
+    }
 
     let err = match user_data.clone().insert(client.get_ref(), DB, USERS).await {
         Ok(..) => {
@@ -48,7 +68,7 @@ async fn new(
                 && write_error.message.contains("email") =>
         {
             ctx.insert("email_error", "That email already exists");
-            tmpl.render("index.html", &ctx).map_err(|e| {
+            tmpl.render("signup.html", &ctx).map_err(|e| {
                 dbg!(&e);
                 actix_web::error::ErrorInternalServerError("Template error")
             })?
@@ -58,7 +78,7 @@ async fn new(
                 && write_error.message.contains("username") =>
         {
             ctx.insert("username_error", "That username already exists");
-            tmpl.render("index.html", &ctx).map_err(|e| {
+            tmpl.render("signup.html", &ctx).map_err(|e| {
                 dbg!(&e);
                 actix_web::error::ErrorInternalServerError("Template error")
             })?
@@ -169,8 +189,9 @@ pub async fn user_home_page(
                 .append_header((actix_web::http::header::LOCATION, "/login"))
                 .finish())
         }
-        Err(..) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        Err(e) => {
+            dbg!(e);
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"));
         }
     };
 
@@ -182,15 +203,17 @@ pub async fn user_home_page(
 
     let stream = match result {
         Ok(stream) => stream,
-        Err(..) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        Err(e) => {
+            dbg!(e);
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"));
         }
     };
 
     let recipients: Vec<RecipientProto> = match stream.try_collect().await {
         Ok(recipients) => recipients,
-        Err(..) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+        Err(e) => {
+            dbg!(e);
+            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"));
         }
     };
 
@@ -242,11 +265,14 @@ pub async fn new_recipient(
 
     match result {
         Ok(..) => Ok(HttpResponse::Ok().json(&ApiResponse::success())),
-        Err(..) => Ok(
-            HttpResponse::InternalServerError().json(&ApiResponse::failure(
-                "unable to connect to database".into(),
-            )),
-        ),
+        Err(e) => {
+            dbg!(e);
+            return Ok(
+                HttpResponse::InternalServerError().json(&ApiResponse::failure(
+                    "unable to connect to database".into(),
+                )),
+            );
+        }
     }
 }
 
@@ -268,13 +294,13 @@ pub async fn delete_recipient(
         .database(DB)
         .collection(RECIPIENTS)
         .delete_one(
-            dbg!(doc! {
+            doc! {
                 "firstName": &user_data.first_name,
                 "lastName": &user_data.last_name,
                 "address": &user_data.address,
                 "giftDate": &user_data.gift_date,
                 "giftingUser": id,
-            }),
+            },
             None,
         )
         .await;
@@ -287,11 +313,14 @@ pub async fn delete_recipient(
             )));
         }
         Ok(..) => Ok(HttpResponse::Ok().json(&ApiResponse::success())),
-        Err(..) => Ok(
-            HttpResponse::InternalServerError().json(&ApiResponse::failure(
-                "unable to connect to database".into(),
-            )),
-        ),
+        Err(e) => {
+            dbg!(e);
+            return Ok(
+                HttpResponse::InternalServerError().json(&ApiResponse::failure(
+                    "unable to connect to database".into(),
+                )),
+            );
+        }
     }
 }
 
@@ -303,14 +332,64 @@ pub async fn logout(id: Identity) -> Result<HttpResponse> {
         .finish())
 }
 
+async fn check_hibp(web_client: impl Deref<Target = reqwest::Client>, pw: &str) -> bool {
+    let mut hasher = sha1::Sha1::new();
+    hasher.update(pw.as_bytes());
+    let result = hasher.finalize();
+    let hashed_pw = hex::encode_upper(result);
+    let prefix = &hashed_pw[0..5];
+    let hibp = web_client
+        .get(&format!("https://api.pwnedpasswords.com/range/{}", prefix))
+        .header("hibp-api-key", env!("HIBP_API_KEY"))
+        .header("user-agent", "perpetual")
+        .send()
+        .await;
+    let text = match hibp {
+        Ok(res) => res.text().await,
+        Err(_) => return false,
+    };
+    match text {
+        Ok(body) => body
+            .split("\r\n")
+            .map(|s| Some(s.split(':').next()?))
+            .find(|pw| pw.map(|s| format!("{}{}", prefix, s)).as_ref() == Some(&hashed_pw))
+            .is_some(),
+        Err(_) => false,
+    }
+}
+
 pub fn user_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("/user")
             .service(web::resource("/login").route(web::post().to(login)))
-            .service(web::resource("/new").route(web::post().to(new)))
+            .service(web::resource("/signup").route(web::post().to(signup)))
             .service(web::resource("/add-recipient").route(web::post().to(new_recipient)))
             .service(web::resource("/delete-recipient").route(web::post().to(delete_recipient)))
             .service(web::resource("/logout").route(web::post().to(logout)))
             .service(web::resource("").route(web::get().to(user_home_page))),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_hibp;
+    use rand::Rng;
+
+    #[tokio::test]
+    async fn pwned_pw() {
+        let web_client = reqwest::Client::new();
+        assert!(check_hibp(&web_client, "hunter2").await);
+    }
+
+    #[tokio::test]
+    async fn non_pwned_pw() {
+        let pw: String = rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+
+        let web_client = reqwest::Client::new();
+        assert!(!check_hibp(&web_client, &pw).await);
+    }
 }

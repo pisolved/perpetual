@@ -271,7 +271,7 @@ pub async fn delete_recipient(
             dbg!(doc! {
                 "firstName": &user_data.first_name,
                 "lastName": &user_data.last_name,
-                "address": &user_data.last_name,
+                "address": &user_data.address,
                 "giftDate": &user_data.gift_date,
                 "giftingUser": id,
             }),
@@ -280,10 +280,12 @@ pub async fn delete_recipient(
         .await;
 
     match result {
-        Ok(delete_result) if delete_result.deleted_count == 0 => Ok(HttpResponse::BadRequest()
-            .json(&ApiResponse::failure(
+        Ok(delete_result) if delete_result.deleted_count == 0 => {
+            dbg!(&delete_result);
+            return Ok(HttpResponse::BadRequest().json(&ApiResponse::failure(
                 "could not find recipient to delete".into(),
-            ))),
+            )));
+        }
         Ok(..) => Ok(HttpResponse::Ok().json(&ApiResponse::success())),
         Err(..) => Ok(
             HttpResponse::InternalServerError().json(&ApiResponse::failure(

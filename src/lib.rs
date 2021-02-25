@@ -12,6 +12,9 @@ use actix_web::{
     Result,
 };
 
+use serde::{Deserialize, Serialize};
+
+use dashmap::DashSet;
 use mongodb::Client;
 use std::{env, net::TcpListener};
 use tera::Tera;
@@ -67,10 +70,22 @@ fn get_error_response<B>(res: &ServiceResponse<B>, error: &str) -> HttpResponse<
         None => fallback(error),
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Uniques {
+    pub usernames: DashSet<String>,
+    pub emails: DashSet<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserAndEmail {
+    pub username: String,
+    pub email: String,
+}
 pub fn run(
     listener: TcpListener,
     client: Client,
     private_key: &'static str,
+    uniques: Uniques,
 ) -> Result<Server, std::io::Error> {
     env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     env_logger::init();
@@ -89,6 +104,7 @@ pub fn run(
             .data(client.clone())
             .data(web::JsonConfig::default())
             .data(tera.clone())
+            .data(uniques.clone())
             .service(
                 fs::Files::new("/static", concat!(env!("CARGO_MANIFEST_DIR"), "/static"))
                     .show_files_listing(),

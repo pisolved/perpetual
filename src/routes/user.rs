@@ -1,6 +1,10 @@
-use super::{super::db::*, SessionInfo};
+use super::{
+    super::{db::*, Uniques},
+    ApiResponse,
+    SessionInfo,
+};
 use actix_identity::Identity;
-use actix_web::{web, HttpResponse, Result};
+use actix_web::{error, web, HttpResponse, Result};
 use futures::stream::TryStreamExt;
 use mongodb::{
     bson::doc,
@@ -16,6 +20,7 @@ const RECIPIENTS: &str = "recipients";
 
 async fn new(
     client: web::Data<mongodb::Client>,
+    uniques: web::Data<Uniques>,
     tmpl: web::Data<tera::Tera>,
     user_data: web::Form<UserProto>,
 ) -> Result<HttpResponse> {
@@ -27,8 +32,11 @@ async fn new(
 
     let err = match user_data.clone().insert(client.get_ref(), DB, USERS).await {
         Ok(..) => {
+            uniques.usernames.insert(user_data.username.clone());
+            uniques.emails.insert(user_data.email.clone());
+
             return Ok(HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .append_header((actix_web::http::header::LOCATION, "/"))
                 .finish());
         }
         Err(e) => e,
@@ -85,9 +93,19 @@ async fn login(
 
     let User { data, id } = match result {
         Ok(Some(user)) => user,
-        Ok(None) => return Ok(HttpResponse::Unauthorized().body("invalid username or password")),
+        Ok(None) => {
+            let mut ctx = tera::Context::new();
+            ctx.insert("badLogin", "No user found with these credentials.");
+            let res = tmpl.render("login.html", &ctx).map_err(|e| {
+                dbg!(&e);
+                error::ErrorInternalServerError("Template error")
+            })?;
+            return Ok(HttpResponse::Ok().content_type("text/html").body(res));
+        }
         Err(..) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to connect to database"))
+            return Ok(
+                HttpResponse::InternalServerError().body(format!("unable to connect to database"))
+            )
         }
     };
 
@@ -111,7 +129,9 @@ async fn login(
 
     identity.remember(serde_json::to_string(&session).expect("serde unable to serialize session"));
 
-    user_home_page(client, tmpl, identity).await
+    Ok(HttpResponse::Found()
+        .append_header((actix_web::http::header::LOCATION, "/"))
+        .finish())
 }
 
 pub async fn user_home_page(
@@ -125,7 +145,7 @@ pub async fn user_home_page(
         }
         None => {
             return Ok(HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .append_header((actix_web::http::header::LOCATION, "/login"))
                 .finish())
         }
     };
@@ -146,7 +166,7 @@ pub async fn user_home_page(
         Ok(Some(user)) => user,
         Ok(None) => {
             return Ok(HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/user/login"))
+                .append_header((actix_web::http::header::LOCATION, "/login"))
                 .finish())
         }
         Err(..) => {
@@ -191,17 +211,27 @@ pub async fn user_home_page(
 
 pub async fn new_recipient(
     client: web::Data<mongodb::Client>,
-    user_data: web::Form<RecipientProto>,
+    user_data: web::Json<RecipientProto>,
     identity: Identity,
 ) -> Result<HttpResponse> {
+    if user_data.first_name.is_empty()
+        || user_data.last_name.is_empty()
+        || user_data.address.is_empty()
+        || user_data.gift_date.is_empty()
+    {
+        return Ok(HttpResponse::BadRequest().json(&ApiResponse::failure(
+            "invalid input, fields cannot be blank".into(),
+        )));
+    }
+
     let SessionInfo { id, .. } = match identity.identity() {
         Some(identity) => {
             serde_json::from_str(&identity).expect("serde unable to deserialize session")
         }
         None => {
-            return Ok(HttpResponse::Found()
-                .append_header((actix_web::http::header::LOCATION, "/user/login"))
-                .finish())
+            return Ok(HttpResponse::Unauthorized().json(&ApiResponse::failure(
+                "cannot add recipient without being logged in".into(),
+            )));
         }
     };
 
@@ -211,11 +241,64 @@ pub async fn new_recipient(
         .await;
 
     match result {
-        Ok(..) => Ok(HttpResponse::Found()
-            .append_header((actix_web::http::header::LOCATION, "/user"))
-            .finish()),
-        Err(..) => Ok(HttpResponse::InternalServerError().body("unable to connect to database")),
+        Ok(..) => Ok(HttpResponse::Ok().json(&ApiResponse::success())),
+        Err(..) => Ok(
+            HttpResponse::InternalServerError().json(&ApiResponse::failure(
+                "unable to connect to database".into(),
+            )),
+        ),
     }
+}
+
+pub async fn delete_recipient(
+    identity: Identity,
+    client: web::Data<mongodb::Client>,
+    user_data: web::Json<RecipientProto>,
+) -> Result<HttpResponse> {
+    let SessionInfo { id, .. } = match identity.identity() {
+        Some(id) => serde_json::from_str(&id).expect("serde unable to deserialize session"),
+        None => {
+            return Ok(HttpResponse::Unauthorized().json(&ApiResponse::failure(
+                "cannot delete recipient without being logged in".into(),
+            )))
+        }
+    };
+
+    let result = client
+        .database(DB)
+        .collection(RECIPIENTS)
+        .delete_one(
+            dbg!(doc! {
+                "firstName": &user_data.first_name,
+                "lastName": &user_data.last_name,
+                "address": &user_data.last_name,
+                "giftDate": &user_data.gift_date,
+                "giftingUser": id,
+            }),
+            None,
+        )
+        .await;
+
+    match result {
+        Ok(delete_result) if delete_result.deleted_count == 0 => Ok(HttpResponse::BadRequest()
+            .json(&ApiResponse::failure(
+                "could not find recipient to delete".into(),
+            ))),
+        Ok(..) => Ok(HttpResponse::Ok().json(&ApiResponse::success())),
+        Err(..) => Ok(
+            HttpResponse::InternalServerError().json(&ApiResponse::failure(
+                "unable to connect to database".into(),
+            )),
+        ),
+    }
+}
+
+pub async fn logout(id: Identity) -> Result<HttpResponse> {
+    id.forget();
+
+    Ok(HttpResponse::Found()
+        .append_header((actix_web::http::header::LOCATION, "/"))
+        .finish())
 }
 
 pub fn user_config(config: &mut web::ServiceConfig) {
@@ -223,7 +306,9 @@ pub fn user_config(config: &mut web::ServiceConfig) {
         web::scope("/user")
             .service(web::resource("/login").route(web::post().to(login)))
             .service(web::resource("/new").route(web::post().to(new)))
-            .service(web::resource("/add-gift-date").route(web::post().to(new_recipient)))
+            .service(web::resource("/add-recipient").route(web::post().to(new_recipient)))
+            .service(web::resource("/delete-recipient").route(web::post().to(delete_recipient)))
+            .service(web::resource("/logout").route(web::post().to(logout)))
             .service(web::resource("").route(web::get().to(user_home_page))),
     );
 }

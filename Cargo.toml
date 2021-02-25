@@ -29,6 +29,7 @@ actix-identity = { git = "https://github.com/andy128k/actix-extras", branch = "u
 derive_more = "0.99.11"
 libpasta = "0.1.1"
 futures = "0.3.13"
+dashmap = "4.0.2"
 
 [dev-dependencies]
 reqwest = "0.11"

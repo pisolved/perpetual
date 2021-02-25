@@ -1,20 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8"/>
-        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
-        <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-        <title>
-            {% block title %}Perpetual{% endblock title %}
-        </title>
-        {% include "resources.html" %}
-    </head>
-    <body>
-        <div id="content">{% block content %}{% endblock content %}</div>
-        <div id="footer">
-            {% block footer %}
-            &copy; Copyright 2021 by Rustaceans.
-            {% endblock footer %}
-        </div>
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{% block title %}Perpetual{% endblock title %}</title>
+    {% include "resources.html" %}
+  </head>
+  <body>
+    {% include "navbar.html" %}
+    <div id="content">{% block content %}{% endblock content %}</div>
+    <div id="footer">
+      {% block footer %}
+      <style>
+        .footer {
+          position: fixed;
+          left: 0;
+          bottom: 0;
+          width: 100%;
+          background-color: red;
+          color: white;
+          text-align: center;
+        }
+      </style>
+      <div class="footer">&copy; Copyright 2021 by Rustaceans.</div>
+      {% endblock footer %}
+    </div>
+  </body>
 </html>

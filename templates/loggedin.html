@@ -1,75 +1,38 @@
-{% extends "base.html" %}
-{% block title %}Recipients{%endblock title %}
-{% block content %}
-    <h1>Hello {{ username }}</h1>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
-    <table class="table">
-                <caption v-if="captions">
-                    Your lucky recipients
-                </caption>
-                <thead>
-                    <tr>
-                        <th scope="col">First Name</th>
-                        <th scope="col">Last Name</th>
-                        <th scope="col">Address</th>
-                        <th scope="col">Gift Date</th>
-                        <th scope="col">Good Person?</th>
-                    </tr>
-                </thead>
-                <tbody>
-
+{% extends "base.html" %} {% block title %}Recipients{%endblock title %} {%
+block content %}
+<h1>Hello {{ username }}</h1>
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<table class="table" id="recipientList">
+  <caption v-if="captions">
+    Your lucky recipients
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">First Name</th>
+      <th scope="col">Last Name</th>
+      <th scope="col">Address</th>
+      <th scope="col">Gift Date</th>
+      <th scope="col"></th>
+    </tr>
+  </thead>
+  <tbody>
     {% for recipient in recipients %}
-                    <tr>
-                        <td>{{ recipient.firstName }}</td>
-                        <td>{{ recipient.lastName }}</td>
-                        <td>{{ recipient.address }}</td>
-                        <td>{{ recipient.giftDate }}</td>
-                        <td>Allegedly</td>
-                    </tr>
+    <tr>
+      <td>{{ recipient.firstName }}</td>
+      <td>{{ recipient.lastName }}</td>
+      <td>{{ recipient.address }}</td>
+      <td>{{ recipient.giftDate }}</td>
+      <td>
+        <button class="deleteRecipientButton btn btn-danger">Delete</button>
+      </td>
+    </tr>
 
     {% endfor %}
-                </tbody>
-
-            </table>
-    <form action="/user/add-gift-date" class="form-horizontal" method="POST">
-        <fieldset>
-            <!-- Text input-->
-            <div class="form-group row">
-                <label class="col-md-4 control-label" for="firstName">first name</label>
-                <div class="col-md-4">
-                        <input class="form-control input-md" id="firstName" name="firstName" placeholder="first name" type="text"/>
-                </div>
-            </div>
-            <!-- Text input-->
-            <div class="form-group row">
-                <label class="col-md-4 control-label" for="lastName">last name</label>
-                <div class="col-md-4">
-                        <input class="form-control input-md" id="lastName" name="lastName" placeholder="last name" type="text"/>
-                </div>
-            </div>
-            <!-- Text input-->
-            <div class="form-group row">
-                <label class="col-md-4 control-label" for="address">address</label>
-                <div class="col-md-4">
-                        <input class="form-control input-md" id="address" name="address" placeholder="address" type="text"/>
-                </div>
-            </div>
-            <!-- Text input-->
-            <div class="form-group row">
-                <label class="col-md-4 control-label" for="gift_date">gift date</label>
-                <div class="col-md-4">
-                    <input class="form-control input-md" id="giftDate" name="giftDate" placeholder="gift date"
-                        type="date"/>
-                </div>
-            </div>
-
-            <!-- Button -->
-            <button class=" btn btn-primary" type="submit">Submit</button>
-        </fieldset>
-    </form>
-{% endblock content %}
+  </tbody>
+</table>
+{% include "add-recipient.html"%} {% endblock content %}
